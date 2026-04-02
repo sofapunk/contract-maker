@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contract Maker – sofatutor</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,.08);
+        }
+        h1 {
+            font-size: 1.4rem;
+            margin-bottom: 1.5rem;
+            color: #222;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-top: 1rem;
+            margin-bottom: .3rem;
+            font-size: .9rem;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: .6rem .8rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: .95rem;
+            font-family: inherit;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #6C63FF;
+            box-shadow: 0 0 0 3px rgba(108,99,255,.12);
+        }
+        textarea { resize: vertical; min-height: 60px; }
+        .hint { font-size: .8rem; color: #888; margin-top: .2rem; }
+        button {
+            margin-top: 1.5rem;
+            width: 100%;
+            padding: .8rem;
+            background: #6C63FF;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .2s;
+        }
+        button:hover { background: #5a52d5; }
+        button:disabled { background: #bbb; cursor: not-allowed; }
+        #status {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: .85rem;
+            line-height: 1.6;
+            display: none;
+        }
+        #status.running { background: #f0f0ff; border: 1px solid #d0d0ff; display: block; }
+        #status.success { background: #f0fff4; border: 1px solid #b2f5c0; display: block; }
+        #status.error   { background: #fff5f5; border: 1px solid #fcc; display: block; }
+        #status a {
+            color: #6C63FF;
+            font-weight: 600;
+            word-break: break-all;
+        }
+        .step { margin-bottom: .3rem; }
+        .buyout-duration { margin-top: .5rem; }
+        .buyout-duration.hidden { display: none; }
+        .row { display: flex; gap: 1rem; }
+        .row > div { flex: 1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 Content Creator Contract Maker</h1>
+        <form id="contractForm">
+            <label for="creator_name">Name des Content Creators</label>
+            <input type="text" id="creator_name" name="creator_name" required placeholder="z.B. Anna Müller">
+
+            <label for="creator_address">Adresse</label>
+            <input type="text" id="creator_address" name="creator_address" required placeholder="z.B. Musterstraße 1, 10115">
+
+            <label for="creator_city">Stadt</label>
+            <input type="text" id="creator_city" name="creator_city" required placeholder="z.B. Berlin">
+
+            <label for="deadline">Deadline</label>
+            <input type="date" id="deadline" name="deadline" required>
+
+            <label for="briefings">Briefing Name + Nummer</label>
+            <textarea id="briefings" name="briefings" required placeholder="z.B. MAIN-2026-042&#10;MAIN-2026-043"></textarea>
+            <div class="hint">Ein Briefing pro Zeile bei mehreren</div>
+
+            <label for="payment">Vereinbartes Honorar (pro Briefing)</label>
+            <input type="text" id="payment" name="payment" required placeholder="z.B. 350 Euro">
+
+            <label>Buyout / Nutzungsrechte</label>
+            <select id="buyout_type" name="buyout_type" onchange="toggleDuration()">
+                <option value="unlimited">Unbefristet</option>
+                <option value="limited">Befristet</option>
+            </select>
+            <div id="duration_row" class="buyout-duration hidden">
+                <label for="buyout_duration">Nutzungszeitraum</label>
+                <input type="text" id="buyout_duration" name="buyout_duration" placeholder="z.B. 3 Monate, 26 Wochen, 1 Jahr">
+            </div>
+
+            <button type="submit" id="submitBtn">Vertrag erstellen</button>
+        </form>
+
+        <div id="status"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById("contractForm");
+        const status = document.getElementById("status");
+        const submitBtn = document.getElementById("submitBtn");
+
+        function addStep(text) {
+            const div = document.createElement("div");
+            div.className = "step";
+            div.textContent = text;
+            status.appendChild(div);
+        }
+
+        function toggleDuration() {
+            const type = document.getElementById("buyout_type").value;
+            const row = document.getElementById("duration_row");
+            const input = document.getElementById("buyout_duration");
+            if (type === "limited") {
+                row.classList.remove("hidden");
+                input.required = true;
+            } else {
+                row.classList.add("hidden");
+                input.required = false;
+                input.value = "";
+            }
+        }
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            status.innerHTML = "";
+            status.className = "running";
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Erstelle Vertrag …";
+            addStep("⏳ Sende Daten …");
+
+            const formData = new FormData(form);
+
+            // Format deadline to DD.MM.YYYY for the doc
+            const deadlineRaw = formData.get("deadline");
+            if (deadlineRaw) {
+                const [y, m, d] = deadlineRaw.split("-");
+                formData.set("deadline", `${d}.${m}.${y}`);
+            }
+
+            try {
+                const res = await fetch("/create", { method: "POST", body: formData });
+                const data = await res.json();
+
+                status.innerHTML = "";
+                if (data.steps) {
+                    data.steps.forEach(s => addStep(s));
+                }
+
+                if (data.success) {
+                    status.className = "success";
+                    const link = document.createElement("div");
+                    link.className = "step";
+                    link.innerHTML = `<br><strong>📄 <a href="${data.url}" target="_blank">${data.title}</a></strong>`;
+                    status.appendChild(link);
+                } else {
+                    status.className = "error";
+                    addStep(`❌ ${data.error}`);
+                }
+            } catch (err) {
+                status.innerHTML = "";
+                status.className = "error";
+                addStep(`❌ Netzwerkfehler: ${err.message}`);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Vertrag erstellen";
+            }
+        });
+    </script>
+</body>
+</html>

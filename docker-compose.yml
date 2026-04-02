@@ -1,0 +1,15 @@
+services:
+  web:
+    build: .
+    restart: always
+    expose:
+      - "8080"
+    volumes:
+      - ./.secrets:/app/.secrets:ro
+    networks:
+      - caddy-shared
+
+networks:
+  caddy-shared:
+    name: caddy-shared
+    external: true
