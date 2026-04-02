@@ -180,7 +180,10 @@
                     status.className = "success";
                     const link = document.createElement("div");
                     link.className = "step";
-                    link.innerHTML = `<br><strong>📄 <a href="${data.url}" target="_blank">${data.title}</a></strong>`;
+                    link.innerHTML = `<br><strong>📄 <a href="${data.url}" target="_blank">${data.title} (Google Doc)</a></strong>`;
+                    if (data.pdf_url) {
+                        link.innerHTML += `<br><strong>📎 <a href="${data.pdf_url}" target="_blank">${data.title}.pdf</a></strong>`;
+                    }
                     status.appendChild(link);
                 } else {
                     status.className = "error";

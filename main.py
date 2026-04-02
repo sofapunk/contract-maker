@@ -203,13 +203,36 @@ async def create_contract(
         ).execute()
         steps.append("✅ All placeholders replaced")
 
-        # --- 6. Build link ---
+        # --- 6. Export as PDF and save to same folder ---
+        steps.append("📄 Exporting PDF …")
+        pdf_content = drive.files().export(
+            fileId=new_doc_id, mimeType="application/pdf"
+        ).execute()
+
+        pdf_metadata = {
+            "name": f"{new_title}.pdf",
+            "mimeType": "application/pdf",
+        }
+        if parent_folder:
+            pdf_metadata["parents"] = [parent_folder]
+
+        from googleapiclient.http import MediaInMemoryUpload
+        media = MediaInMemoryUpload(pdf_content, mimetype="application/pdf")
+        pdf_file = drive.files().create(
+            body=pdf_metadata, media_body=media,
+            supportsAllDrives=True,
+        ).execute()
+        pdf_url = f"https://drive.google.com/file/d/{pdf_file['id']}/view"
+        steps.append(f"✅ PDF saved: {new_title}.pdf")
+
+        # --- 7. Build links ---
         doc_url = f"https://docs.google.com/document/d/{new_doc_id}/edit"
-        steps.append(f"🔗 Done! Document ready.")
+        steps.append("🔗 Done! Document and PDF ready.")
 
         return JSONResponse({
             "success": True,
             "url": doc_url,
+            "pdf_url": pdf_url,
             "title": new_title,
             "steps": steps,
         })
